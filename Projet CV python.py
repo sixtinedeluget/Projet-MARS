@@ -21,18 +21,9 @@ from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 
-import nltk
-import spacy
-from spacy.cli import download
-download("en_core_web_sm")
-nltk.download("words")
-nltk.download('stopwords')
-
-from pyresparser import ResumeParser
-data = ResumeParser('C:/Users/sixti/Documents/3A/Stat M2/Projet CV/CVnassima.pdf').get_extracted_data()
 
 ### Automatiser avec une boucle for en simplifiant tous les cv par cv1, cv2 etc
-### Pb pas d'anonymisation, extraction en entier, lit de droite à gauche pas par blocs
+### Pb pas d'anonymisation, extraction en entier, 
 
 def clean_text(txt):
     replacements = {
@@ -47,6 +38,37 @@ def clean_text(txt):
         txt = txt.replace(old, new)
     return txt.strip()
 
+### Fonction qui prend les CV et les Offre et renvoie les embeddings
+#data=longueur du dataset
+#path sous forme de liste de path
+listecv=["Cvsixtine.pdf","CVnassima.pdf","Cvvalentine.pdf","Cvcamille.pdf","cvchimiste.pdf","cvcommerce.pdf","cvchef.pdf","directeur financier.pdf","designer stylist.pdf","sales & trading intern.pdf"]
+listeof=["Offretest.pdf","Offrebucheron.pdf","Offrecomptable.pdf","Offregardien.pdf","Offremodel.pdf","aide soignant.pdf","ambulancier.pdf","animateur 2D_3D.pdf","choregraphe.pdf","kiné.pdf"]
+
+def textcv (path):
+    cv_text=[]
+    for i in range (len(listecv)):
+        readercvi = PdfReader(path[i])
+        text_pagescvi = [page.extract_text() for page in readercvi.pages]
+        full_textcvi = "\n".join(text_pagescvi)
+        full_textcvi = clean_text(full_textcvi)
+        clean_textcvi = unidecode.unidecode(full_textcvi)
+        cv_text=cv_text+[clean_textcvi]
+    return cv_text
+
+def textof (path):
+    of_text=[]
+    for i in range (len(listeof)):
+        readerofi = PdfReader(path[i])
+        text_pagesofi = [page.extract_text() for page in readerofi.pages]
+        full_textofi = "\n".join(text_pagesofi)
+        full_textofi = clean_text(full_textofi)
+        clean_textofi = unidecode.unidecode(full_textofi)
+        of_text=of_text+[clean_textofi]
+    return of_text
+
+of_text=textof(listeof)
+cv_text=textcv(listecv)
+model = SentenceTransformer('all-mpnet-base-v2')
 #### Extraction des embeddings CV agro 1
 
 pdf_pathcv1 = "Cvsixtine.pdf"
@@ -152,9 +174,9 @@ clean_textof2 = unidecode.unidecode(full_textof2)
 embeddingsof2 = model.encode(clean_textof2)
 embeddingsof2 = normalize(embeddingsof2.reshape(1, -1))[0]
 
-#### Extraction des embeddings Offre Qualité 3
+#### Extraction des embeddings Offre Bucheron 3
 
-pdf_pathof3 = "Offrequalité.pdf"
+pdf_pathof3 = "Offrebucheron.pdf"
 readerof3 = PdfReader(pdf_pathof3)
 text_pagesof3 = [page.extract_text() for page in readerof3.pages]
 full_textof3 = "\n".join(text_pagesof3)
@@ -162,14 +184,34 @@ full_textof3 = clean_text(full_textof3)
 clean_textof3 = unidecode.unidecode(full_textof3)
 embeddingsof3 = model.encode(clean_textof3)
 
+#### Extraction des embeddings Offre Comptable 4
+
+pdf_pathof4 = "Offrecomptable.pdf"
+readerof4 = PdfReader(pdf_pathof4)
+text_pagesof4 = [page.extract_text() for page in readerof4.pages]
+full_textof4 = "\n".join(text_pagesof4)
+full_textof4 = clean_text(full_textof4)
+clean_textof4 = unidecode.unidecode(full_textof4)
+embeddingsof4 = model.encode(clean_textof4)
+
+#### Extraction des embeddings Offre Gardien 5
+
+pdf_pathof5 = "Offregardien.pdf"
+readerof5 = PdfReader(pdf_pathof5)
+text_pagesof5 = [page.extract_text() for page in readerof5.pages]
+full_textof5 = "\n".join(text_pagesof5)
+full_textof5 = clean_text(full_textof5)
+clean_textof5 = unidecode.unidecode(full_textof5)
+embeddingsof5 = model.encode(clean_textof5)
+
 ### Création Dataframe
 
-cv_texts = [clean_textcv1, clean_textcv2, clean_textcv3, clean_textcv4, clean_textcv5]
-cv_embeddings = np.array([model.encode(t) for t in cv_texts])
+cv_texts = [clean_textcv1, clean_textcv2, clean_textcv3, clean_textcv4, clean_textcv5, clean_textcv6]
+cv_embeddings = np.array([model.encode(t) for t in cv_text])
 cv_embeddings = normalize(cv_embeddings)
 
-of_texts = [clean_textof1, clean_textof2]
-of_embeddings = np.array([model.encode(t) for t in of_texts])
+of_texts = [clean_textof1, clean_textof2,clean_textof3,clean_textof4,clean_textof5]
+of_embeddings = np.array([model.encode(t) for t in of_text])
 of_embeddings = normalize(of_embeddings)
 
 stackedcv = np.vstack([embeddingscv1, embeddingscv2,embeddingscv3,embeddingscv4,embeddingscv5]) 
@@ -234,12 +276,12 @@ plt.figure(figsize=(8,6))
 
 # Offres
 plt.scatter(of_pca[:,0], of_pca[:,1], color='red', label='Offres')
-for i, txt in enumerate(of_texts):
+for i, txt in enumerate(of_text):
     plt.text(of_pca[i,0]+0.01, of_pca[i,1]+0.01, f'Offre {i+1}', color='red')
 
 # CV
 plt.scatter(cv_pca[:,0], cv_pca[:,1], color='blue', label='CV')
-for i, txt in enumerate(cv_texts):
+for i, txt in enumerate(cv_text):
     plt.text(cv_pca[i,0]+0.01, cv_pca[i,1]+0.01, f'CV {i+1}', color='blue')
 
 plt.xlabel("PC1")
